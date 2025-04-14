@@ -1,16 +1,16 @@
 package com.example.demo.domain.dto;
 
+import com.example.demo.service.Action;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Data
 @Builder
 public class UserActionDTO {
-    private UUID userId;
+    private Long userId;
     private Instant eventTime;
-    private String eventType;
+    private Action eventType;
     private String eventDetails;
 }

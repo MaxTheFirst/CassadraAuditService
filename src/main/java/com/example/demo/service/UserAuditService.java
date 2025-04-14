@@ -21,20 +21,23 @@ public class UserAuditService {
     @Autowired
     private CqlSession session;
 
-    public void insertUserAction(UUID userId, Instant eventTime, Action eventType, String eventDetails) {
+    public void insertUserAction(UserActionDTO userAction) {
         PreparedStatement preparedStatement = session.prepare(
                 "INSERT INTO my_keyspace.user_audit (user_id, event_time, event_type, event_details) " +
                         "VALUES (?, ?, ?, ?)"
         );
 
         BoundStatement boundStatement = preparedStatement.bind(
-                userId, eventTime, eventType.toString(), eventDetails
+            userAction.getUserId(),
+            userAction.getEventTime(),
+            userAction.getEventType().toString(),
+            userAction.getEventDetails()
         );
 
         session.execute(boundStatement);
     }
 
-    public List<UserActionDTO> selectUserActions(UUID userId, Instant approximateTime, Duration tolerance) {
+    public List<UserActionDTO> selectUserActions(Long userId, Instant approximateTime, Duration tolerance) {
         Instant startTime = approximateTime.minus(tolerance);
         Instant endTime = approximateTime.plus(tolerance);
 
@@ -50,9 +53,9 @@ public class UserAuditService {
         List<UserActionDTO> actions = new ArrayList<>();
         for (Row row : resultSet) {
             UserActionDTO action = UserActionDTO.builder()
-                .userId(row.getUuid("user_id"))
+                .userId(row.getLong("user_id"))
                 .eventTime(row.getInstant("event_time"))
-                .eventType(row.getString("event_type"))
+                .eventType(Action.valueOf(row.getString("event_type")))
                 .eventDetails(row.getString("event_details"))
                 .build();
             actions.add(action);

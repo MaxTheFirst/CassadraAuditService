@@ -44,34 +44,48 @@ class UserAuditServiceTest {
 
     @Test
     void successInsertUserAction() {
-        UUID userId = UUID.randomUUID();
+        Long userId = 1L;
         Instant eventTime = Instant.now();
         String eventDetails = "User logged in";
 
-        userAuditService.insertUserAction(userId, eventTime, Action.INSERT, eventDetails);
+        userAuditService.insertUserAction(
+            UserActionDTO.builder()
+                .userId(userId)
+                .eventTime(eventTime)
+                .eventType(Action.UPDATE)
+                .eventDetails(eventDetails)
+                .build()
+        );
         List<UserActionDTO> results = userAuditService.selectUserActions(userId, eventTime, defaultDuration);
 
         assertThat(results.size()).isEqualTo(1);
         assertThat(results.get(0).getUserId()).isEqualTo(userId);
-        assertThat(results.get(0).getEventType()).isEqualTo(Action.INSERT.toString());
+        assertThat(results.get(0).getEventType()).isEqualTo(Action.UPDATE);
         assertThat(results.get(0).getEventDetails()).isEqualTo(eventDetails);
     }
 
 
     @Test
     void insertUserActionWithNullValuesShouldFail() {
-        UUID userId = null;
+        Long userId = null;
         Instant eventTime = Instant.now();
         String eventDetails = null;
 
         assertThrows(InvalidQueryException.class, () ->
-                userAuditService.insertUserAction(userId, eventTime, Action.INSERT, eventDetails)
+                userAuditService.insertUserAction(
+                    UserActionDTO.builder()
+                        .userId(userId)
+                        .eventTime(eventTime)
+                        .eventType(Action.UPDATE)
+                        .eventDetails(eventDetails)
+                        .build()
+                )
         );
     }
 
     @Test
     void selectNonExistentUserActionShouldReturnEmpty() {
-        UUID userId = UUID.randomUUID();
+        Long userId = 1234L;
         Instant eventTime = Instant.now();
 
         List<UserActionDTO> results = userAuditService.selectUserActions(userId, eventTime, defaultDuration);

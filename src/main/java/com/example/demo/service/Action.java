@@ -1,5 +1,5 @@
 package com.example.demo.service;
 
-enum Action {
+public enum Action {
   SELECT, UPDATE, INSERT, DELETE
 }
