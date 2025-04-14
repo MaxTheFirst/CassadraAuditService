@@ -9,8 +9,10 @@ import com.example.demo.domain.dto.UserActionDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -32,30 +34,30 @@ public class UserAuditService {
         session.execute(boundStatement);
     }
 
-    public Optional<UserActionDTO> selectUserAction(UUID userId, Instant eventTime) {
+    public List<UserActionDTO> selectUserActions(UUID userId, Instant approximateTime, Duration tolerance) {
+        Instant startTime = approximateTime.minus(tolerance);
+        Instant endTime = approximateTime.plus(tolerance);
+
         PreparedStatement preparedStatement = session.prepare(
-                "SELECT user_id, event_time, event_type, event_details " +
-                        "FROM my_keyspace.user_audit " +
-                        "WHERE user_id = ? AND event_time = ?"
+            "SELECT user_id, event_time, event_type, event_details " +
+                "FROM my_keyspace.user_audit " +
+                "WHERE user_id = ? AND event_time >= ? AND event_time <= ?"
         );
 
-        BoundStatement boundStatement = preparedStatement.bind(userId, eventTime);
+        BoundStatement boundStatement = preparedStatement.bind(userId, startTime, endTime);
         ResultSet resultSet = session.execute(boundStatement);
-        Row row = resultSet.one();
 
-        if (row != null) {
-            return Optional.of(UserActionDTO.builder()
-                    .userId(row.getUuid("user_id"))
-                    .eventTime(row.getInstant("event_time"))
-                    .eventType(row.getString("event_type"))
-                    .eventDetails(row.getString("event_details"))
-                    .build());
+        List<UserActionDTO> actions = new ArrayList<>();
+        for (Row row : resultSet) {
+            UserActionDTO action = UserActionDTO.builder()
+                .userId(row.getUuid("user_id"))
+                .eventTime(row.getInstant("event_time"))
+                .eventType(row.getString("event_type"))
+                .eventDetails(row.getString("event_details"))
+                .build();
+            actions.add(action);
         }
 
-        return Optional.empty();
-    }
-
-    enum Action {
-        SELECT, UPDATE, INSERT, DELETE
+        return actions;
     }
 }

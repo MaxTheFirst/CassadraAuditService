@@ -12,8 +12,9 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class UserAuditServiceTest {
+    private static final Duration defaultDuration = Duration.ofSeconds(5);
 
     @Container
     private static final CassandraContainer<?> cassandraContainer =
@@ -46,13 +48,13 @@ class UserAuditServiceTest {
         Instant eventTime = Instant.now();
         String eventDetails = "User logged in";
 
-        userAuditService.insertUserAction(userId, eventTime, UserAuditService.Action.INSERT, eventDetails);
-        Optional<UserActionDTO> result = userAuditService.selectUserAction(userId, eventTime);
+        userAuditService.insertUserAction(userId, eventTime, Action.INSERT, eventDetails);
+        List<UserActionDTO> results = userAuditService.selectUserActions(userId, eventTime, defaultDuration);
 
-        assertThat(result).isPresent();
-        assertThat(result.get().getUserId()).isEqualTo(userId);
-        assertThat(result.get().getEventType()).isEqualTo(UserAuditService.Action.INSERT.toString());
-        assertThat(result.get().getEventDetails()).isEqualTo(eventDetails);
+        assertThat(results.size()).isEqualTo(1);
+        assertThat(results.get(0).getUserId()).isEqualTo(userId);
+        assertThat(results.get(0).getEventType()).isEqualTo(Action.INSERT.toString());
+        assertThat(results.get(0).getEventDetails()).isEqualTo(eventDetails);
     }
 
 
@@ -63,7 +65,7 @@ class UserAuditServiceTest {
         String eventDetails = null;
 
         assertThrows(InvalidQueryException.class, () ->
-                userAuditService.insertUserAction(userId, eventTime, UserAuditService.Action.INSERT, eventDetails)
+                userAuditService.insertUserAction(userId, eventTime, Action.INSERT, eventDetails)
         );
     }
 
@@ -72,8 +74,8 @@ class UserAuditServiceTest {
         UUID userId = UUID.randomUUID();
         Instant eventTime = Instant.now();
 
-        Optional<UserActionDTO> result = userAuditService.selectUserAction(userId, eventTime);
+        List<UserActionDTO> results = userAuditService.selectUserActions(userId, eventTime, defaultDuration);
 
-        assertThat(result).isNotPresent();
+        assertThat(results.size()).isEqualTo(0);
     }
 }

@@ -22,7 +22,7 @@ public class CassandraConfig {
 
     @Bean
     public CqlSession cqlSession(CqlSessionBuilder sessionBuilder) {
-        InetSocketAddress address = InetSocketAddress.createUnresolved("127.0.0.1", 9042);
+        InetSocketAddress address = InetSocketAddress.createUnresolved(properties.getContactPoints().get(0), properties.getPort());
         sessionBuilder = sessionBuilder.addContactPoint(address);
         sessionBuilder.withKeyspace((CqlIdentifier) null);
 
